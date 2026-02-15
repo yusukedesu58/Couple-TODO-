@@ -1,0 +1,1890 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>夫婦の共有TODOリスト</title>
+    <!-- Google API Client Library -->
+    <script src="https://apis.google.com/js/api.js"></script>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Noto Sans JP', sans-serif;
+            background-color: #fff5e6;
+            min-height: 100vh;
+            padding-bottom: 80px;
+        }
+
+        /* グラデーション背景 */
+        .gradient-bg {
+            background: linear-gradient(135deg, #ff9a8b 0%, #ff6a88 50%, #ff99ac 100%);
+        }
+
+        /* ヘッダー */
+        .header {
+            background: linear-gradient(135deg, #ff9a8b 0%, #ff6a88 50%, #ff99ac 100%);
+            padding: 24px;
+            border-radius: 0 0 24px 24px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 24px;
+            color: white;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .header p {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        /* コンテナ */
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 0 16px;
+        }
+
+        /* ボタン */
+        .btn {
+            border: none;
+            cursor: pointer;
+            font-family: 'Noto Sans JP', sans-serif;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+
+        .btn-primary {
+            background: linear-gradient(to right, #ff6a88, #ff99ac);
+            color: white;
+            padding: 16px 24px;
+            border-radius: 16px;
+            font-size: 16px;
+            font-weight: 700;
+            box-shadow: 0 4px 12px rgba(255, 106, 136, 0.3);
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        .btn-primary:hover {
+            box-shadow: 0 6px 16px rgba(255, 106, 136, 0.4);
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background-color: #e5e7eb;
+            color: #374151;
+            padding: 12px 24px;
+            border-radius: 12px;
+            font-weight: 500;
+        }
+
+        .btn-secondary:hover {
+            background-color: #d1d5db;
+        }
+
+        .btn-calendar {
+            background: linear-gradient(to right, #fb923c, #f472b6);
+            color: white;
+            padding: 12px 16px;
+            border-radius: 12px;
+            font-weight: 500;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 12px;
+            box-shadow: 0 2px 8px rgba(251, 146, 60, 0.3);
+        }
+
+        .btn-calendar:hover {
+            box-shadow: 0 4px 12px rgba(251, 146, 60, 0.4);
+        }
+
+
+
+        .btn-delete {
+            background: linear-gradient(to right, #ef4444, #dc2626);
+            color: white;
+            padding: 12px 16px;
+            border-radius: 12px;
+            font-weight: 500;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
+        }
+
+        .btn-delete:hover {
+            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+            background: linear-gradient(to right, #dc2626, #b91c1c);
+        }
+
+
+
+        /* フォーム */
+        .task-form {
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            margin-bottom: 24px;
+        }
+
+        .task-form h2 {
+            font-size: 20px;
+            font-weight: 700;
+            color: #1f2937;
+            margin-bottom: 16px;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            color: #374151;
+            margin-bottom: 8px;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            font-size: 16px;
+            font-family: 'Noto Sans JP', sans-serif;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #f472b6;
+        }
+
+        .assignee-buttons {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .assignee-btn {
+            padding: 12px 16px;
+            border-radius: 12px;
+            background-color: #f3f4f6;
+            color: #374151;
+            font-weight: 500;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .assignee-btn:hover {
+            background-color: #e5e7eb;
+        }
+
+        .assignee-btn.active {
+            background: linear-gradient(135deg, #f472b6, #a78bfa);
+            color: white;
+            box-shadow: 0 2px 8px rgba(244, 114, 182, 0.3);
+        }
+
+        .form-actions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        /* タスクカード */
+        .task-card {
+            background: white;
+            border-radius: 16px;
+            padding: 16px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            margin-bottom: 12px;
+            transition: all 0.3s ease;
+        }
+
+        .task-card.completed {
+            opacity: 0.6;
+        }
+
+        .task-content {
+            display: flex;
+            align-items: start;
+            gap: 12px;
+        }
+
+        .checkbox {
+            flex-shrink: 0;
+            width: 32px;
+            height: 32px;
+            border: 2px solid #d1d5db;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .checkbox:hover {
+            border-color: #f472b6;
+        }
+
+        .checkbox.checked {
+            background: linear-gradient(135deg, #f472b6, #a78bfa);
+            border-color: #f472b6;
+        }
+
+        .task-info {
+            flex: 1;
+        }
+
+        .task-title {
+            font-size: 18px;
+            font-weight: 500;
+            color: #1f2937;
+            margin-bottom: 8px;
+        }
+
+        .task-title.completed {
+            text-decoration: line-through;
+            color: #9ca3af;
+        }
+
+        .task-meta {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .task-date {
+            font-size: 14px;
+            color: #6b7280;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .task-assignee {
+            font-size: 12px;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-weight: 500;
+        }
+
+        .assignee-husband {
+            background-color: #dbeafe;
+            color: #1e40af;
+        }
+
+        .assignee-wife {
+            background-color: #fce7f3;
+            color: #be185d;
+        }
+
+        .assignee-both {
+            background-color: #f3e8ff;
+            color: #6b21a8;
+        }
+
+        /* サブタスク関連 */
+        .subtask-toggle-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #6b7280;
+            transition: all 0.3s ease;
+            border-radius: 4px;
+        }
+
+        .subtask-toggle-btn:hover {
+            background-color: #f3f4f6;
+            color: #f472b6;
+        }
+
+        .subtask-toggle-btn.expanded {
+            transform: rotate(180deg);
+        }
+
+        .subtask-progress-container {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 8px;
+        }
+
+        .subtask-progress-bar {
+            flex: 1;
+            height: 8px;
+            background-color: #e5e7eb;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .subtask-progress-fill {
+            height: 100%;
+            background: linear-gradient(to right, #f472b6, #a78bfa);
+            transition: width 0.5s ease;
+        }
+
+        .subtask-progress-text {
+            font-size: 12px;
+            font-weight: 600;
+            color: #f472b6;
+            min-width: 36px;
+            text-align: right;
+        }
+
+        .subtasks-container {
+            margin-top: 12px;
+            padding: 12px;
+            background-color: #f9fafb;
+            border-radius: 8px;
+            border-left: 3px solid #f472b6;
+        }
+
+        .subtask-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px;
+            margin-bottom: 4px;
+            border-radius: 6px;
+            transition: background-color 0.3s ease;
+        }
+
+        .subtask-item:hover {
+            background-color: #ffffff;
+        }
+
+        .subtask-item.completed {
+            opacity: 0.6;
+        }
+
+        .subtask-checkbox {
+            flex-shrink: 0;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #d1d5db;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .subtask-checkbox:hover {
+            border-color: #f472b6;
+        }
+
+        .subtask-checkbox.checked {
+            background: linear-gradient(135deg, #f472b6, #a78bfa);
+            border-color: #f472b6;
+        }
+
+        .subtask-checkbox svg {
+            width: 14px;
+            height: 14px;
+        }
+
+        .subtask-title {
+            flex: 1;
+            font-size: 14px;
+            color: #374151;
+        }
+
+        .subtask-title.completed {
+            text-decoration: line-through;
+            color: #9ca3af;
+        }
+
+        .subtask-assignee {
+            font-size: 11px;
+            padding: 3px 10px;
+            border-radius: 10px;
+            font-weight: 500;
+            margin-left: auto;
+            flex-shrink: 0;
+        }
+
+
+        .task-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+            flex-wrap: wrap;
+        }
+
+        .btn-add-subtask {
+            background: linear-gradient(to right, #a78bfa, #c084fc);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 4px rgba(167, 139, 250, 0.2);
+        }
+
+        .btn-add-subtask:hover {
+            box-shadow: 0 4px 8px rgba(167, 139, 250, 0.3);
+            transform: translateY(-1px);
+        }
+
+        .btn-add-subtask svg {
+            width: 16px;
+            height: 16px;
+        }
+
+
+        /* セクション */
+        .section-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: #374151;
+            margin-bottom: 12px;
+            margin-top: 24px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 48px 24px;
+        }
+
+        .empty-state-icon {
+            font-size: 64px;
+            margin-bottom: 16px;
+        }
+
+        .empty-state-text {
+            color: #6b7280;
+            font-weight: 500;
+        }
+
+        /* ボトムナビゲーション */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+            border-top: 1px solid #e5e7eb;
+            padding: 12px 0;
+            z-index: 100;
+        }
+
+        .nav-container {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+        }
+
+        .nav-button {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            padding: 8px 24px;
+            border-radius: 12px;
+            background: none;
+            border: none;
+            color: #6b7280;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .nav-button.active {
+            background: linear-gradient(135deg, #ff6a88, #ff9a8b);
+            color: white;
+        }
+
+        .nav-button span {
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        /* タブコンテンツ */
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* 統計情報 */
+        .stats-card {
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            margin-bottom: 16px;
+        }
+
+        .stats-card h3 {
+            font-size: 18px;
+            font-weight: 700;
+            color: #1f2937;
+            margin-bottom: 16px;
+        }
+
+        .progress-bar {
+            position: relative;
+            height: 32px;
+            background-color: #e5e7eb;
+            border-radius: 16px;
+            overflow: hidden;
+            margin-bottom: 8px;
+        }
+
+        .progress-fill {
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 100%;
+            background: linear-gradient(to right, #f472b6, #a78bfa);
+            transition: width 0.5s ease;
+        }
+
+        .progress-text {
+            text-align: center;
+            font-size: 32px;
+            font-weight: 700;
+            background: linear-gradient(to right, #f472b6, #a78bfa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+            text-align: center;
+        }
+
+        .stat-item-number {
+            font-size: 24px;
+            font-weight: 700;
+            color: #1f2937;
+        }
+
+        .stat-item-number.green {
+            color: #10b981;
+        }
+
+        .stat-item-number.orange {
+            color: #f59e0b;
+        }
+
+        .stat-item-label {
+            font-size: 14px;
+            color: #6b7280;
+        }
+
+        .assignee-stats {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .assignee-stat-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .assignee-stat-label {
+            color: #374151;
+        }
+
+        .assignee-stat-number {
+            font-size: 20px;
+            font-weight: 700;
+        }
+
+        .message-card {
+            margin-top: 24px;
+            background: linear-gradient(135deg, #fce7f3, #f3e8ff);
+            border-radius: 16px;
+            padding: 24px;
+            text-align: center;
+        }
+
+        .message-card p:first-child {
+            font-size: 24px;
+            margin-bottom: 8px;
+        }
+
+        .message-card p:last-child {
+            font-size: 14px;
+            color: #4b5563;
+        }
+
+        /* カレンダータブ */
+        .calendar-item {
+            background: white;
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            margin-bottom: 16px;
+        }
+
+        .calendar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .time-label {
+            font-size: 14px;
+            font-weight: 700;
+            color: #f472b6;
+        }
+
+        .calendar-date {
+            font-size: 14px;
+            color: #6b7280;
+        }
+
+        .calendar-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: #1f2937;
+            margin-bottom: 8px;
+        }
+
+        .calendar-assignee {
+            font-size: 14px;
+            color: #4b5563;
+        }
+
+        /* カレンダーウィジェット */
+        .calendar-widget {
+            background: white;
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .calendar-header-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .calendar-month-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: #1f2937;
+            margin: 0;
+        }
+
+        .calendar-nav-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 8px;
+            color: #6b7280;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .calendar-nav-btn:hover {
+            background-color: #f3f4f6;
+            color: #f472b6;
+        }
+
+        .calendar-weekdays {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 4px;
+            margin-bottom: 8px;
+        }
+
+        .calendar-weekday {
+            text-align: center;
+            font-size: 14px;
+            font-weight: 600;
+            color: #6b7280;
+            padding: 8px 4px;
+        }
+
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 4px;
+        }
+
+        .calendar-day {
+            aspect-ratio: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            background-color: #f9fafb;
+            border: 2px solid transparent;
+        }
+
+        .calendar-day:not(.empty):hover {
+            background-color: #fce7f3;
+            border-color: #f9a8d4;
+        }
+
+        .calendar-day.empty {
+            cursor: default;
+            background-color: transparent;
+        }
+
+        .calendar-day.today {
+            background-color: #fef3c7;
+            border-color: #fbbf24;
+        }
+
+        .calendar-day.selected {
+            background: linear-gradient(135deg, #f472b6, #a78bfa);
+            border-color: #f472b6;
+        }
+
+        .calendar-day.selected .calendar-day-number {
+            color: white;
+            font-weight: 700;
+        }
+
+        .calendar-day.selected .calendar-task-indicator {
+            color: white;
+        }
+
+        .calendar-day-number {
+            font-size: 16px;
+            font-weight: 500;
+            color: #1f2937;
+        }
+
+        .calendar-task-indicator {
+            position: absolute;
+            bottom: 4px;
+            font-size: 8px;
+            color: #f472b6;
+            font-weight: 900;
+        }
+
+        .calendar-day.has-tasks {
+            font-weight: 600;
+        }
+
+
+        /* アニメーション */
+        @keyframes confetti-fall {
+            0% {
+                transform: translateY(-100%) rotate(0deg);
+                opacity: 1;
+            }
+
+            100% {
+                transform: translateY(100vh) rotate(720deg);
+                opacity: 0;
+            }
+        }
+
+        @keyframes task-pop {
+            0% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.05);
+            }
+
+            100% {
+                transform: scale(1);
+            }
+        }
+
+        .confetti {
+            animation: confetti-fall 1s ease-out;
+        }
+
+        .task-complete {
+            animation: task-pop 0.5s ease-out;
+        }
+
+        .confetti-container {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 9999;
+        }
+
+        .confetti-item {
+            position: absolute;
+            font-size: 36px;
+        }
+
+        /* 非表示クラス */
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="app"></div>
+
+    <script>
+        // Google Calendar API設定
+        const GOOGLE_CLIENT_ID = '524794726764-id6vmg4q2vt5s9j3i9n1dnj6p9sqiasd.apps.googleusercontent.com';
+        const GOOGLE_API_KEY = 'AIzaSyAA03CifR_JTE6nCZKNp66nN8ImLCpIw5Y';
+        const DISCOVERY_DOC = 'https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest';
+        const SCOPES = 'https://www.googleapis.com/auth/calendar.events';
+
+        let tokenClient;
+        let gapiInited = false;
+        let gisInited = false;
+
+        // アプリケーションの状態
+        const state = {
+            tasks: [
+                {
+                    id: 1,
+                    title: '晩ごはんの材料を買う',
+                    date: '2026-02-11',
+                    assignee: '妻',
+                    completed: false,
+                    subtasks: [
+                        { id: 101, title: '野菜を買う', completed: false, assignee: '妻' },
+                        { id: 102, title: '肉を買う', completed: false, assignee: '妻' },
+                        { id: 103, title: '調味料を買う', completed: false, assignee: '妻' }
+                    ]
+                },
+                {
+                    id: 2,
+                    title: 'ゴミ出し',
+                    date: '2026-02-12',
+                    assignee: '夫',
+                    completed: false,
+                    subtasks: []
+                },
+                {
+                    id: 3,
+                    title: '映画を見に行く',
+                    date: '2026-02-15',
+                    assignee: '二人',
+                    completed: false,
+                    subtasks: [
+                        { id: 301, title: 'チケット予約', completed: false, assignee: '夫' },
+                        { id: 302, title: 'レストラン予約', completed: false, assignee: '妻' }
+                    ]
+                }
+            ],
+            activeTab: 'tasks',
+            showForm: false,
+            currentMonth: new Date(),
+            selectedDate: null,
+            expandedTasks: {},
+            isGoogleSignedIn: false,
+            formData: {
+                title: '',
+                date: '',
+                assignee: '二人',
+                isAllDay: true,
+                startTime: '09:00',
+                endTime: '10:00'
+            }
+        };
+
+        // SVGアイコン
+        const icons = {
+            plus: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>',
+            check: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>',
+            calendar: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>',
+            list: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>',
+            settings: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M12 1v6m0 6v6m5.66-13.66l-4.24 4.24m0 6l-4.24 4.24m13.66-5.66l-6 0m-6 0l-6 0m13.66 5.66l-4.24-4.24m0-6l-4.24-4.24"></path></svg>',
+            heart: '<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>',
+            chevronLeft: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>',
+            chevronRight: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>',
+            chevronDown: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>'
+        };
+
+        // Googleカレンダーリンク生成（終日 or 時刻指定）
+        function generateGoogleCalendarLink(task) {
+            const baseUrl = 'https://calendar.google.com/calendar/render';
+            const date = task.date.replace(/-/g, '');
+
+            let datesParam;
+            if (task.isAllDay === false && task.startTime && task.endTime) {
+                // 時刻指定イベント
+                const startTime = task.startTime.replace(':', '') + '00';
+                const endTime = task.endTime.replace(':', '') + '00';
+                datesParam = `${date}T${startTime}/${date}T${endTime}`;
+            } else {
+                // 終日イベント
+                datesParam = `${date}/${date}`;
+            }
+
+            const params = new URLSearchParams({
+                action: 'TEMPLATE',
+                text: task.title,
+                dates: datesParam,
+                details: `担当: ${task.assignee}`,
+                location: '',
+                trp: 'false'
+            });
+
+            return `${baseUrl}?${params.toString()}`;
+        }
+
+        // Googleカレンダーに追加（API使用 or リンク）
+        function addToGoogleCalendar(task) {
+            if (state.isGoogleSignedIn) {
+                // APIで自動追加
+                createCalendarEvent(task);
+            } else {
+                // リンクで開く
+                const url = generateGoogleCalendarLink(task);
+                window.open(url, '_blank');
+            }
+        }
+
+        // Google API初期化
+        function gapiLoaded() {
+            gapi.load('client', initializeGapiClient);
+        }
+
+        async function initializeGapiClient() {
+            await gapi.client.init({
+                apiKey: GOOGLE_API_KEY,
+                discoveryDocs: [DISCOVERY_DOC],
+            });
+            gapiInited = true;
+            maybeEnableButtons();
+        }
+
+        function gisLoaded() {
+            tokenClient = google.accounts.oauth2.initTokenClient({
+                client_id: GOOGLE_CLIENT_ID,
+                scope: SCOPES,
+                callback: '', // 後で定義
+            });
+            gisInited = true;
+            maybeEnableButtons();
+        }
+
+        function maybeEnableButtons() {
+            if (gapiInited && gisInited) {
+                console.log('Google API準備完了');
+            }
+        }
+
+        // Googleサインイン
+        function handleAuthClick() {
+            tokenClient.callback = async (resp) => {
+                if (resp.error !== undefined) {
+                    throw (resp);
+                }
+                state.isGoogleSignedIn = true;
+                render();
+            };
+
+            if (gapi.client.getToken() === null) {
+                tokenClient.requestAccessToken({ prompt: 'consent' });
+            } else {
+                tokenClient.requestAccessToken({ prompt: '' });
+            }
+        }
+
+        // Googleサインアウト
+        function handleSignoutClick() {
+            const token = gapi.client.getToken();
+            if (token !== null) {
+                google.accounts.oauth2.revoke(token.access_token);
+                gapi.client.setToken('');
+                state.isGoogleSignedIn = false;
+                render();
+            }
+        }
+
+        // カレンダーイベント作成
+        async function createCalendarEvent(task) {
+            try {
+                let startDateTime, endDateTime;
+
+                if (task.isAllDay === false && task.startTime && task.endTime) {
+                    // 時刻指定
+                    startDateTime = `${task.date}T${task.startTime}:00`;
+                    endDateTime = `${task.date}T${task.endTime}:00`;
+                } else {
+                    // 終日
+                    startDateTime = task.date;
+                    endDateTime = task.date;
+                }
+
+                const event = {
+                    'summary': task.title,
+                    'description': `担当: ${task.assignee}`,
+                    'start': task.isAllDay === false && task.startTime ?
+                        { 'dateTime': startDateTime, 'timeZone': 'Asia/Tokyo' } :
+                        { 'date': startDateTime },
+                    'end': task.isAllDay === false && task.endTime ?
+                        { 'dateTime': endDateTime, 'timeZone': 'Asia/Tokyo' } :
+                        { 'date': endDateTime }
+                };
+
+                const request = await gapi.client.calendar.events.insert({
+                    'calendarId': 'primary',
+                    'resource': event
+                });
+
+                console.log('イベント作成成功:', request.result);
+                alert('✅ Googleカレンダーに追加しました！');
+            } catch (err) {
+                console.error('イベント作成エラー:', err);
+                alert('❌ カレンダーへの追加に失敗しました。もう一度サインインしてください。');
+            }
+        }
+
+        // 紙吹雪エフェクト
+        function showConfetti() {
+            const container = document.createElement('div');
+            container.className = 'confetti-container';
+            document.body.appendChild(container);
+
+            const emojis = ['🎉', '✨', '🎊', '💕', '🌟'];
+            for (let i = 0; i < 20; i++) {
+                const item = document.createElement('div');
+                item.className = 'confetti-item confetti';
+                item.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+                item.style.left = `${Math.random() * 100}%`;
+                item.style.top = '-50px';
+                item.style.animationDelay = `${Math.random() * 0.3}s`;
+                container.appendChild(item);
+            }
+
+            setTimeout(() => {
+                document.body.removeChild(container);
+            }, 1000);
+        }
+
+        // ローカルストレージ機能
+        const STORAGE_KEY = 'todo_app_data';
+
+        // データを保存
+        function saveToLocalStorage() {
+            try {
+                const data = {
+                    tasks: state.tasks,
+                    lastUpdated: new Date().toISOString()
+                };
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+                console.log('データを保存しました');
+            } catch (error) {
+                console.error('保存エラー:', error);
+                alert('データの保存に失敗しました');
+            }
+        }
+
+        // データを読み込み
+        function loadFromLocalStorage() {
+            try {
+                const stored = localStorage.getItem(STORAGE_KEY);
+                if (stored) {
+                    const data = JSON.parse(stored);
+                    state.tasks = data.tasks || [];
+                    console.log('データを読み込みました:', data.lastUpdated);
+                    return true;
+                }
+                return false;
+            } catch (error) {
+                console.error('読み込みエラー:', error);
+                return false;
+            }
+        }
+
+        // データをクリア
+        function clearLocalStorage() {
+            if (confirm('すべてのデータを削除してもよろしいですか？')) {
+                localStorage.removeItem(STORAGE_KEY);
+                location.reload();
+            }
+        }
+
+        // エクスポート/インポート機能
+
+        // JSONエクスポート
+        function exportToJSON() {
+            try {
+                const data = {
+                    tasks: state.tasks,
+                    exportedAt: new Date().toISOString(),
+                    version: '1.0'
+                };
+                const jsonString = JSON.stringify(data, null, 2);
+                const blob = new Blob([jsonString], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `todo-backup-${new Date().toISOString().split('T')[0]}.json`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+                alert('JSONファイルをエクスポートしました');
+            } catch (error) {
+                console.error('エクスポートエラー:', error);
+                alert('エクスポートに失敗しました');
+            }
+        }
+
+        // CSVエクスポート
+        function exportToCSV() {
+            try {
+                let csv = '\uFEFFタイトル,日付,担当者,完了状態,サブタスク\n';
+                state.tasks.forEach(task => {
+                    const subtasksText = task.subtasks
+                        ? task.subtasks.map(st => `${st.title}(${st.assignee}:${st.completed ? '完了' : '未完了'})`).join(';')
+                        : '';
+                    csv += `"${task.title}","${task.date}","${task.assignee}","${task.completed ? '完了' : '未完了'}","${subtasksText}"\n`;
+                });
+                const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `todo-backup-${new Date().toISOString().split('T')[0]}.csv`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+                alert('CSVファイルをエクスポートしました');
+            } catch (error) {
+                console.error('エクスポートエラー:', error);
+                alert('エクスポートに失敗しました');
+            }
+        }
+
+        // JSONインポート
+        function importFromJSON() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json';
+            input.onchange = (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    try {
+                        const data = JSON.parse(event.target.result);
+                        if (data.tasks && Array.isArray(data.tasks)) {
+                            if (confirm(`${data.tasks.length}件のタスクをインポートします。現在のデータは上書きされますがよろしいですか？`)) {
+                                state.tasks = data.tasks;
+                                saveToLocalStorage();
+                                render();
+                                alert('インポートが完了しました');
+                            }
+                        } else {
+                            alert('無効なJSONファイルです');
+                        }
+                    } catch (error) {
+                        console.error('インポートエラー:', error);
+                        alert('ファイルの読み込みに失敗しました');
+                    }
+                };
+                reader.readAsText(file);
+            };
+            input.click();
+        }
+
+        // CSVインポート (簡易版)
+        function importFromCSV() {
+            alert('CSV インポートは現在JSONインポートをご利用ください。\nCSV形式への対応は今後のアップデートで追加予定です。');
+        }
+
+
+
+        // タスク切り替え
+        function toggleTask(id) {
+            const task = state.tasks.find(t => t.id === id);
+            if (!task.completed) {
+                showConfetti();
+            }
+            task.completed = !task.completed;
+            saveToLocalStorage();
+            render();
+        }
+
+        // サブタスク関連関数
+        function toggleTaskExpanded(taskId) {
+            state.expandedTasks[taskId] = !state.expandedTasks[taskId];
+            render();
+        }
+
+        function addSubtask(taskId) {
+            const task = state.tasks.find(t => t.id === taskId);
+            if (!task) return;
+
+            const subtaskTitle = prompt('サブタスクを入力してください:');
+            if (!subtaskTitle) return;
+
+            const assignee = prompt('担当を選んでください:\n1: 夫\n2: 妻\n3: 二人', '3');
+            let assigneeName = '二人';
+            if (assignee === '1') assigneeName = '夫';
+            else if (assignee === '2') assigneeName = '妻';
+
+            const newSubtask = {
+                id: Date.now(),
+                title: subtaskTitle,
+                completed: false,
+                assignee: assigneeName
+            };
+
+            task.subtasks.push(newSubtask);
+            saveToLocalStorage();
+            render();
+        }
+
+        function toggleSubtask(taskId, subtaskId) {
+            const task = state.tasks.find(t => t.id === taskId);
+            if (!task) return;
+
+            const subtask = task.subtasks.find(st => st.id === subtaskId);
+            if (!subtask) return;
+
+            subtask.completed = !subtask.completed;
+            saveToLocalStorage();
+            render();
+        }
+
+        function getSubtaskProgress(task) {
+            if (!task.subtasks || task.subtasks.length === 0) return 0;
+            const completed = task.subtasks.filter(st => st.completed).length;
+            return Math.round((completed / task.subtasks.length) * 100);
+        }
+
+        // タスク追加
+        function addTask() {
+            const { title, date, assignee } = state.formData;
+            if (!title || !date) return;
+
+            const newTask = {
+                id: Date.now(),
+                title,
+                date,
+                assignee,
+                completed: false,
+                subtasks: [],
+                isAllDay: state.formData.isAllDay,
+                startTime: state.formData.isAllDay ? null : state.formData.startTime,
+                endTime: state.formData.isAllDay ? null : state.formData.endTime
+            };
+
+            state.tasks.push(newTask);
+            state.formData = {
+                title: '',
+                date: '',
+                assignee: '二人',
+                isAllDay: true,
+                startTime: '09:00',
+                endTime: '10:00'
+            };
+            state.showForm = false;
+            saveToLocalStorage();
+            render();
+        }
+
+        // カレンダーに追加
+        function addToCalendar(task) {
+            const url = generateGoogleCalendarLink(task);
+            window.open(url, '_blank');
+        }
+
+        // タブ切り替え
+        function switchTab(tab) {
+            state.activeTab = tab;
+            render();
+        }
+
+        // フォーム表示切り替え
+        function toggleForm() {
+            state.showForm = !state.showForm;
+            render();
+        }
+
+        // フォーム更新
+        function updateForm(field, value) {
+            state.formData[field] = value;
+        }
+
+        // カレンダー関連関数
+        function changeMonth(delta) {
+            const newMonth = new Date(state.currentMonth);
+            newMonth.setMonth(newMonth.getMonth() + delta);
+            state.currentMonth = newMonth;
+            render();
+        }
+
+        function selectDate(dateStr) {
+            state.selectedDate = state.selectedDate === dateStr ? null : dateStr;
+            render();
+        }
+
+        function getTasksForDate(dateStr) {
+            return state.tasks.filter(t => t.date === dateStr);
+        }
+
+        function getDaysInMonth(date) {
+            const year = date.getFullYear();
+            const month = date.getMonth();
+            const firstDay = new Date(year, month, 1);
+            const lastDay = new Date(year, month + 1, 0);
+            const daysInMonth = lastDay.getDate();
+            const startDayOfWeek = firstDay.getDay();
+
+            const days = [];
+
+            // 前月の日付で埋める
+            for (let i = 0; i < startDayOfWeek; i++) {
+                days.push({ date: null, isCurrentMonth: false });
+            }
+
+            // 当月の日付
+            for (let i = 1; i <= daysInMonth; i++) {
+                const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
+                days.push({ date: i, dateStr, isCurrentMonth: true });
+            }
+
+            return days;
+        }
+
+        // タスクリストタブのレンダリング
+        function renderTaskListTab() {
+            const pendingTasks = state.tasks.filter(t => !t.completed);
+            const completedTasks = state.tasks.filter(t => t.completed);
+            const today = new Date().toISOString().split('T')[0];
+
+            return `
+                <div class="header">
+                    <h1>${icons.heart} わたしたちのTODO</h1>
+                    <p>いっしょに頑張ろう！</p>
+                </div>
+
+                <div class="container">
+                    ${!state.showForm ? `
+                        <button class="btn btn-primary" onclick="toggleForm()">
+                            ${icons.plus}
+                            新しいタスクを追加
+                        </button>
+                    ` : ''}
+
+                    ${state.showForm ? `
+                        <div class="task-form">
+                            <h2>新しいタスク</h2>
+                            <form onsubmit="event.preventDefault(); addTask();">
+                                <div class="form-group">
+                                    <label>タスク名</label>
+                                    <input 
+                                        type="text" 
+                                        placeholder="例: 晩ごはんの材料を買う"
+                                        value="${state.formData.title}"
+                                        oninput="updateForm('title', this.value)"
+                                        required
+                                    >
+                                </div>
+                                <div class="form-group">
+                                    <label>日付</label>
+                                    <input 
+                                        type="date" 
+                                        min="${today}"
+                                        value="${state.formData.date}"
+                                        oninput="updateForm('date', this.value)"
+                                        required
+                                    >
+                                </div>
+                                <div class="form-group">
+                                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                                        <input 
+                                            type="checkbox" 
+                                            ${state.formData.isAllDay ? 'checked' : ''}
+                                            onchange="updateForm('isAllDay', this.checked); render();"
+                                            style="width: auto; cursor: pointer;"
+                                        >
+                                        終日のタスク
+                                    </label>
+                                </div>
+                                ${!state.formData.isAllDay ? `
+                                    <div class="form-group" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                                        <div>
+                                            <label>開始時刻</label>
+                                            <input 
+                                                type="time" 
+                                                value="${state.formData.startTime}"
+                                                oninput="updateForm('startTime', this.value)"
+                                            >
+                                        </div>
+                                        <div>
+                                            <label>終了時刻</label>
+                                            <input 
+                                                type="time" 
+                                                value="${state.formData.endTime}"
+                                                oninput="updateForm('endTime', this.value)"
+                                            >
+                                        </div>
+                                    </div>
+                                ` : ''}
+                                <div class="form-group">
+                                    <label>担当</label>
+                                    <div class="assignee-buttons">
+                                        ${['夫', '妻', '二人'].map(option => `
+                                            <button 
+                                                type="button" 
+                                                class="assignee-btn ${state.formData.assignee === option ? 'active' : ''}"
+                                                onclick="updateForm('assignee', '${option}'); render();"
+                                            >
+                                                ${option}
+                                            </button>
+                                        `).join('')}
+                                    </div>
+                                </div>
+                                <div class="form-actions">
+                                    <button type="button" class="btn btn-secondary" onclick="toggleForm()">
+                                        キャンセル
+                                    </button>
+                                    <button type="submit" class="btn btn-primary" style="margin: 0;">
+                                        追加
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    ` : ''}
+
+                    <h2 class="section-title">未完了のタスク</h2>
+                    ${pendingTasks.length === 0 ? `
+                        <div class="empty-state">
+                            <div class="empty-state-icon">🎉</div>
+                            <p class="empty-state-text">すべてのタスクが完了しました！</p>
+                        </div>
+                    ` : pendingTasks.map(task => renderTaskCard(task)).join('')}
+
+                    ${completedTasks.length > 0 ? `
+                        <h2 class="section-title">完了したタスク</h2>
+                        ${completedTasks.map(task => renderTaskCard(task)).join('')}
+                    ` : ''}
+                </div>
+            `;
+        }
+
+        // タスクカードのレンダリング
+        function renderTaskCard(task) {
+            const assigneeClass = {
+                '夫': 'assignee-husband',
+                '妻': 'assignee-wife',
+                '二人': 'assignee-both'
+            }[task.assignee];
+
+            const hasSubtasks = task.subtasks && task.subtasks.length > 0;
+            const progress = getSubtaskProgress(task);
+            const isExpanded = state.expandedTasks[task.id];
+
+            return `
+                <div class="task-card ${task.completed ? 'completed' : ''}">
+                    <div class="task-content">
+                        <div class="checkbox ${task.completed ? 'checked' : ''}" onclick="toggleTask(${task.id})">
+                            ${task.completed ? icons.check : ''}
+                        </div>
+                        <div class="task-info">
+                            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                                <h3 class="task-title ${task.completed ? 'completed' : ''}" style="margin: 0;">${task.title}</h3>
+                                ${hasSubtasks ? `
+                                    <button 
+                                        class="subtask-toggle-btn ${isExpanded ? 'expanded' : ''}" 
+                                        onclick="toggleTaskExpanded(${task.id})"
+                                        title="サブタスクを${isExpanded ? '隠す' : '表示'}"
+                                    >
+                                        ${icons.chevronDown}
+                                    </button>
+                                ` : ''}
+                            </div>
+                            
+                            ${hasSubtasks ? `
+                                <div class="subtask-progress-container">
+                                    <div class="subtask-progress-bar">
+                                        <div class="subtask-progress-fill" style="width: ${progress}%"></div>
+                                    </div>
+                                    <span class="subtask-progress-text">${progress}%</span>
+                                </div>
+                            ` : ''}
+
+                            <div class="task-meta">
+                                <span class="task-date">
+                                    ${icons.calendar}
+                                    ${task.date}${!task.isAllDay && task.startTime && task.endTime ? ` ${task.startTime}-${task.endTime}` : ''}
+                                </span>
+                                <span class="task-assignee ${assigneeClass}">
+                                    ${task.assignee}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    ${isExpanded && hasSubtasks ? `
+                        <div class="subtasks-container">
+                            ${task.subtasks.map(subtask => {
+                const subtaskAssigneeClass = {
+                    '夫': 'assignee-husband',
+                    '妻': 'assignee-wife',
+                    '二人': 'assignee-both'
+                }[subtask.assignee || '二人'];
+
+                return `
+                                <div class="subtask-item ${subtask.completed ? 'completed' : ''}">
+                                    <div 
+                                        class="subtask-checkbox ${subtask.completed ? 'checked' : ''}" 
+                                        onclick="toggleSubtask(${task.id}, ${subtask.id})"
+                                    >
+                                        ${subtask.completed ? icons.check : ''}
+                                    </div>
+                                    <span class="subtask-title ${subtask.completed ? 'completed' : ''}">
+                                        ${subtask.title}
+                                    </span>
+                                    <span class="subtask-assignee ${subtaskAssigneeClass}">
+                                        ${subtask.assignee || '二人'}
+                                    </span>
+                                </div>
+                                `;
+            }).join('')}
+                        </div>
+                    ` : ''}
+
+
+                    <div class="task-actions">
+                        <button class="btn-add-subtask" onclick="addSubtask(${task.id})">
+                            ${icons.plus}
+                            サブタスク追加
+                        </button>
+                        ${!task.completed ? `
+                            <button class="btn btn-calendar" onclick="addToGoogleCalendar(${JSON.stringify(task).replace(/"/g, '&quot;')})">
+                                ${icons.calendar}
+                                Googleカレンダーに追加
+                            </button>
+                        ` : ''}
+                    </div>
+                </div>
+            `;
+        }
+
+        // カレンダータブのレンダリング
+        function renderCalendarTab() {
+            const year = state.currentMonth.getFullYear();
+            const month = state.currentMonth.getMonth();
+            const monthName = `${year}年${month + 1}月`;
+            const days = getDaysInMonth(state.currentMonth);
+            const weekDays = ['日', '月', '火', '水', '木', '金', '土'];
+
+            // 選択された日付のタスク
+            const selectedTasks = state.selectedDate ? getTasksForDate(state.selectedDate) : [];
+
+            return `
+                <div class="container" style="padding-top: 24px;">
+                    <h2 class="section-title">📅 カレンダー</h2>
+                    
+                    <div class="calendar-widget">
+                        <div class="calendar-header-controls">
+                            <button class="calendar-nav-btn" onclick="changeMonth(-1)">
+                                ${icons.chevronLeft}
+                            </button>
+                            <h3 class="calendar-month-title">${monthName}</h3>
+                            <button class="calendar-nav-btn" onclick="changeMonth(1)">
+                                ${icons.chevronRight}
+                            </button>
+                        </div>
+                        
+                        <div class="calendar-weekdays">
+                            ${weekDays.map(day => `<div class="calendar-weekday">${day}</div>`).join('')}
+                        </div>
+                        
+                        <div class="calendar-grid">
+                            ${days.map(day => {
+                if (!day.isCurrentMonth) {
+                    return '<div class="calendar-day empty"></div>';
+                }
+
+                const tasks = getTasksForDate(day.dateStr);
+                const hasTasks = tasks.length > 0;
+                const isSelected = state.selectedDate === day.dateStr;
+                const today = new Date().toISOString().split('T')[0];
+                const isToday = day.dateStr === today;
+
+                return `
+                                    <div 
+                                        class="calendar-day ${hasTasks ? 'has-tasks' : ''} ${isSelected ? 'selected' : ''} ${isToday ? 'today' : ''}"
+                                        onclick="selectDate('${day.dateStr}')"
+                                    >
+                                        <span class="calendar-day-number">${day.date}</span>
+                                        ${hasTasks ? '<div class="calendar-task-indicator">●</div>' : ''}
+                                    </div>
+                                `;
+            }).join('')}
+                        </div>
+                    </div>
+
+                    ${state.selectedDate ? `
+                        <div style="margin-top: 24px;">
+                            <h3 class="section-title">${state.selectedDate} のタスク</h3>
+                            ${selectedTasks.length === 0 ? `
+                                <div class="empty-state" style="padding: 24px;">
+                                    <p class="empty-state-text">この日はタスクがありません</p>
+                                </div>
+                            ` : selectedTasks.map(task => {
+                const assigneeClass = {
+                    '夫': 'assignee-husband',
+                    '妻': 'assignee-wife',
+                    '二人': 'assignee-both'
+                }[task.assignee];
+
+                return `
+                                    <div class="task-card ${task.completed ? 'completed' : ''}">
+                                        <div class="task-content">
+                                            <div class="checkbox ${task.completed ? 'checked' : ''}" onclick="toggleTask(${task.id})">
+                                                ${task.completed ? icons.check : ''}
+                                            </div>
+                                            <div class="task-info">
+                                                <h3 class="task-title ${task.completed ? 'completed' : ''}">${task.title}</h3>
+                                                <div class="task-meta">
+                                                    <span class="task-assignee ${assigneeClass}">
+                                                        ${task.assignee}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                `;
+            }).join('')}
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+        }
+
+        // 設定タブのレンダリング
+        function renderSettingsTab() {
+            const stats = {
+                total: state.tasks.length,
+                completed: state.tasks.filter(t => t.completed).length,
+                pending: state.tasks.filter(t => !t.completed).length,
+                husband: state.tasks.filter(t => t.assignee === '夫').length,
+                wife: state.tasks.filter(t => t.assignee === '妻').length,
+                both: state.tasks.filter(t => t.assignee === '二人').length
+            };
+
+            const completionRate = stats.total > 0 ? Math.round((stats.completed / stats.total) * 100) : 0;
+
+            return `
+                <div class="container" style="padding-top: 24px;">
+                    <h2 class="section-title">⚙️ 統計情報</h2>
+
+                    <div class="stats-card">
+                        <h3>タスク達成率</h3>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: ${completionRate}%"></div>
+                        </div>
+                        <p class="progress-text">${completionRate}%</p>
+                    </div>
+
+                    <div class="stats-card">
+                        <h3>タスク数</h3>
+                        <div class="stats-grid">
+                            <div>
+                                <p class="stat-item-number">${stats.total}</p>
+                                <p class="stat-item-label">全体</p>
+                            </div>
+                            <div>
+                                <p class="stat-item-number green">${stats.completed}</p>
+                                <p class="stat-item-label">完了</p>
+                            </div>
+                            <div>
+                                <p class="stat-item-number orange">${stats.pending}</p>
+                                <p class="stat-item-label">未完了</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="stats-card">
+                        <h3>担当別</h3>
+                        <div class="assignee-stats">
+                            <div class="assignee-stat-item">
+                                <span class="assignee-stat-label">👨 夫</span>
+                                <span class="assignee-stat-number" style="color: #3b82f6;">${stats.husband}</span>
+                            </div>
+                            <div class="assignee-stat-item">
+                                <span class="assignee-stat-label">👩 妻</span>
+                                <span class="assignee-stat-number" style="color: #ec4899;">${stats.wife}</span>
+                            </div>
+                            <div class="assignee-stat-item">
+                                <span class="assignee-stat-label">💑 二人</span>
+                                <span class="assignee-stat-number" style="color: #a855f7;">${stats.both}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <h2 class="section-title" style="margin-top: 32px;">🔗 Googleカレンダー連携</h2>
+                    
+                    <div class="stats-card">
+                        <h3>自動同期</h3>
+                        <p style="font-size: 14px; color: #6b7280; margin-bottom: 16px;">
+                            Googleカレンダーと連携すると、タスク追加時に自動的にカレンダーにイベントが作成されます。
+                        </p>
+                        
+                        ${state.isGoogleSignedIn ? `
+                            <div style="padding: 16px; background: linear-gradient(135deg, #d1fae5, #a7f3d0); border-radius: 12px; margin-bottom: 16px;">
+                                <p style="color: #065f46; font-weight: 600; margin-bottom: 4px;">✅ 連携済み</p>
+                                <p style="color: #047857; font-size: 14px;">タスクを追加すると自動的にGoogleカレンダーに登録されます。</p>
+                            </div>
+                            <button class="btn btn-delete" onclick="handleSignoutClick()">
+                                連携を解除
+                            </button>
+                        ` : `
+                            <div style="padding: 16px; background: linear-gradient(135deg, #fef3c7, #fde68a); border-radius: 12px; margin-bottom: 16px;">
+                                <p style="color: #78350f; font-weight: 600; margin-bottom: 4px;">⚠️ 未連携</p>
+                                <p style="color: #92400e; font-size: 14px;">Googleアカウントでサインインして自動同期を有効にしてください。</p>
+                            </div>
+                            <button class="btn btn-primary" onclick="handleAuthClick()">
+                                Googleカレンダーと連携
+                            </button>
+                        `}
+                    </div>
+
+                    <h2 class="section-title" style="margin-top: 32px;">💾 データ管理</h2>
+                    
+                    <div class="stats-card">
+                        <h3>バックアップ・復元</h3>
+                        <p style="font-size: 14px; color: #6b7280; margin-bottom: 16px;">
+                            データは自動的にブラウザに保存されますが、念のためバックアップを取ることをおすすめします。
+                        </p>
+                        
+                        <div style="display: grid; gap: 12px;">
+                            <button class="btn btn-primary" onclick="exportToJSON()">
+                                📥 JSONでエクスポート
+                            </button>
+                            <button class="btn btn-primary" onclick="exportToCSV()">
+                                📊 CSVでエクスポート
+                            </button>
+                            <button class="btn btn-calendar" onclick="importFromJSON()">
+                                📤 JSONからインポート
+                            </button>
+                            <button class="btn-delete" onclick="clearLocalStorage()">
+                                🗑️ すべてのデータを削除
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="message-card">
+                        <p>💕</p>
+                        <p>いつも二人で頑張っていますね！</p>
+                    </div>
+                </div>
+            `;
+        }
+
+        // ボトムナビゲーションのレンダリング
+        function renderBottomNav() {
+            return `
+                <div class="bottom-nav">
+                    <div class="nav-container">
+                        <button class="nav-button ${state.activeTab === 'tasks' ? 'active' : ''}" onclick="switchTab('tasks')">
+                            ${icons.list}
+                            <span>タスク</span>
+                        </button>
+                        <button class="nav-button ${state.activeTab === 'calendar' ? 'active' : ''}" onclick="switchTab('calendar')">
+                            ${icons.calendar}
+                            <span>カレンダー</span>
+                        </button>
+                        <button class="nav-button ${state.activeTab === 'settings' ? 'active' : ''}" onclick="switchTab('settings')">
+                            ${icons.settings}
+                            <span>設定</span>
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        // メインレンダリング関数
+        function render() {
+            const app = document.getElementById('app');
+            let content = '';
+
+            if (state.activeTab === 'tasks') {
+                content = renderTaskListTab();
+            } else if (state.activeTab === 'calendar') {
+                content = renderCalendarTab();
+            } else if (state.activeTab === 'settings') {
+                content = renderSettingsTab();
+            }
+
+            app.innerHTML = content + renderBottomNav();
+        }
+
+        // 初期化処理
+        loadFromLocalStorage();
+
+        // Google API初期化
+        if (typeof gapi !== 'undefined') {
+            gapiLoaded();
+        }
+        if (typeof google !== 'undefined') {
+            gisLoaded();
+        }
+
+        // 初期レンダリング
+        render();
+    </script>
+</body>
+
+</html>
