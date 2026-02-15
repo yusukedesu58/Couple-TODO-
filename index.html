@@ -874,16 +874,268 @@
         .hidden {
             display: none !important;
         }
+
+        /* ログイン画面 */
+        .login-overlay {
+            position: fixed;
+            inset: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            z-index: 10000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .login-card {
+            background: white;
+            border-radius: 24px;
+            padding: 40px 32px;
+            width: 100%;
+            max-width: 380px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            text-align: center;
+        }
+
+        .login-emoji {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+
+        .login-title {
+            font-size: 24px;
+            font-weight: 700;
+            color: #1f2937;
+            margin-bottom: 8px;
+        }
+
+        .login-subtitle {
+            font-size: 14px;
+            color: #6b7280;
+            margin-bottom: 32px;
+        }
+
+        .login-input-wrapper {
+            position: relative;
+            margin-bottom: 16px;
+        }
+
+        .login-input {
+            width: 100%;
+            padding: 14px 48px 14px 16px;
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            font-size: 16px;
+            font-family: 'Noto Sans JP', sans-serif;
+            outline: none;
+            transition: border-color 0.3s ease;
+            box-sizing: border-box;
+        }
+
+        .login-input:focus {
+            border-color: #764ba2;
+        }
+
+        .login-toggle-pw {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: #9ca3af;
+            font-size: 18px;
+            padding: 4px;
+        }
+
+        .login-remember {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-bottom: 24px;
+            font-size: 14px;
+            color: #4b5563;
+            cursor: pointer;
+        }
+
+        .login-remember input {
+            width: auto;
+            cursor: pointer;
+            accent-color: #764ba2;
+        }
+
+        .login-btn {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 700;
+            font-family: 'Noto Sans JP', sans-serif;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(118, 75, 162, 0.4);
+        }
+
+        .login-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(118, 75, 162, 0.5);
+        }
+
+        .login-btn:active {
+            transform: translateY(0);
+        }
+
+        .login-error {
+            color: #ef4444;
+            font-size: 14px;
+            margin-top: 12px;
+            min-height: 20px;
+        }
+
+        .login-shake {
+            animation: shake 0.5s ease-in-out;
+        }
+
+        @keyframes shake {
+
+            0%,
+            100% {
+                transform: translateX(0);
+            }
+
+            20% {
+                transform: translateX(-10px);
+            }
+
+            40% {
+                transform: translateX(10px);
+            }
+
+            60% {
+                transform: translateX(-10px);
+            }
+
+            80% {
+                transform: translateX(10px);
+            }
+        }
     </style>
 </head>
 
 <body>
+    <!-- ログイン画面 -->
+    <div id="loginScreen" class="login-overlay">
+        <div class="login-card" id="loginCard">
+            <div class="login-emoji">🔒</div>
+            <h1 class="login-title">夫婦の共有TODO</h1>
+            <p class="login-subtitle">パスワードを入力してください</p>
+            <div class="login-input-wrapper">
+                <input type="password" id="loginPassword" class="login-input" placeholder="パスワード"
+                    onkeydown="if(event.key==='Enter') checkPassword()" autocomplete="current-password">
+                <button class="login-toggle-pw" onclick="togglePasswordVisibility()" type="button">👁</button>
+            </div>
+            <label class="login-remember">
+                <input type="checkbox" id="rememberMe" checked>
+                次回から自動ログイン
+            </label>
+            <button class="login-btn" onclick="checkPassword()">ログイン</button>
+            <div class="login-error" id="loginError"></div>
+        </div>
+    </div>
+
     <div id="app"></div>
 
     <script>
+        // ===== パスワード認証 =====
+        // パスワードのSHA-256ハッシュ値（ソースコードから元のパスワードは分かりません）
+        // パスワードを変更する場合は、新しいパスワードのSHA-256ハッシュをここに設定してください
+        const APP_PASSWORD_HASH = '111a4e2814556f81ff22256f0bba15e20921c316ac5e4950a6f00643f9834932';
+        const AUTH_STORAGE_KEY = 'todo_auth_token';
+        const AUTH_EXPIRY_DAYS = 30; // 自動ログインの有効期間（日数）
+
+        // SHA-256ハッシュを計算する関数
+        async function sha256(message) {
+            const msgBuffer = new TextEncoder().encode(message);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        }
+
+        async function checkPassword() {
+            const input = document.getElementById('loginPassword');
+            const error = document.getElementById('loginError');
+            const card = document.getElementById('loginCard');
+
+            const inputHash = await sha256(input.value);
+
+            if (inputHash === APP_PASSWORD_HASH) {
+                // 「次回から自動ログイン」がチェックされている場合
+                const rememberMe = document.getElementById('rememberMe').checked;
+                if (rememberMe) {
+                    const expiry = new Date();
+                    expiry.setDate(expiry.getDate() + AUTH_EXPIRY_DAYS);
+                    const authData = {
+                        authenticated: true,
+                        expiry: expiry.toISOString()
+                    };
+                    localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(authData));
+                }
+
+                // ログイン画面を非表示
+                document.getElementById('loginScreen').style.display = 'none';
+                error.textContent = '';
+            } else {
+                error.textContent = 'パスワードが違います';
+                card.classList.add('login-shake');
+                setTimeout(() => card.classList.remove('login-shake'), 500);
+                input.value = '';
+                input.focus();
+            }
+        }
+
+        function togglePasswordVisibility() {
+            const input = document.getElementById('loginPassword');
+            input.type = input.type === 'password' ? 'text' : 'password';
+        }
+
+        function checkAutoLogin() {
+            try {
+                const stored = localStorage.getItem(AUTH_STORAGE_KEY);
+                if (stored) {
+                    const data = JSON.parse(stored);
+                    if (data.authenticated && new Date(data.expiry) > new Date()) {
+                        // 有効期限内なので自動ログイン
+                        document.getElementById('loginScreen').style.display = 'none';
+                        return true;
+                    } else {
+                        // 期限切れなので削除
+                        localStorage.removeItem(AUTH_STORAGE_KEY);
+                    }
+                }
+            } catch (e) {
+                console.error('自動ログインエラー:', e);
+            }
+            return false;
+        }
+
+        function logout() {
+            localStorage.removeItem(AUTH_STORAGE_KEY);
+            document.getElementById('loginScreen').style.display = 'flex';
+            document.getElementById('loginPassword').value = '';
+            document.getElementById('loginError').textContent = '';
+        }
+
+        // 自動ログインチェック
+        checkAutoLogin();
+
         // Google Calendar API設定
         const GOOGLE_CLIENT_ID = '524794726764-id6vmg4q2vt5s9j3i9n1dnj6p9sqiasd.apps.googleusercontent.com';
-        const GOOGLE_API_KEY = 'AIzaSyAA03CifR_JTE6nCZKNp66nN8ImLCpIw5Y';
+        const GOOGLE_API_KEY = 'AIzaSyDNmOjBA8Pv0wtyRuG0PJQGrdYQT_J7UFo'
         const DISCOVERY_DOC = 'https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest';
         const SCOPES = 'https://www.googleapis.com/auth/calendar.events';
 
@@ -1823,6 +2075,18 @@
                                 🗑️ すべてのデータを削除
                             </button>
                         </div>
+                    </div>
+
+                    <h2 class="section-title" style="margin-top: 32px;">🔐 アカウント</h2>
+                    
+                    <div class="stats-card">
+                        <h3>ログアウト</h3>
+                        <p style="font-size: 14px; color: #6b7280; margin-bottom: 16px;">
+                            ログアウトすると、次回アクセス時にパスワードの入力が必要になります。
+                        </p>
+                        <button class="btn btn-delete" onclick="logout()">
+                            🚪 ログアウト
+                        </button>
                     </div>
 
                     <div class="message-card">
