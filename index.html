@@ -1135,7 +1135,10 @@
 
         // Google Calendar API設定
         const GOOGLE_CLIENT_ID = '524794726764-id6vmg4q2vt5s9j3i9n1dnj6p9sqiasd.apps.googleusercontent.com';
-        const GOOGLE_API_KEY = 'AIzaSyDNmOjBA8Pv0wtyRuG0PJQGrdYQT_J7UFo'
+        const GOOGLE_API_KEY = 'AIzaSyDNmOjBA8Pv0wtyRuG0PJQGrdYQT_J7UFo';
+        // 共有カレンダーID
+        const SHARED_CALENDAR_ID = 'de8857faf7dcd39e29ded67744a5996e45b8464eeaca1c57b7577bd17b5e9740@group.calendar.google.com';
+
         const DISCOVERY_DOC = 'https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest';
         const SCOPES = 'https://www.googleapis.com/auth/calendar.events';
 
@@ -1204,7 +1207,9 @@
             heart: '<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>',
             chevronLeft: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>',
             chevronRight: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>',
-            chevronDown: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>'
+            chevronDown: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>',
+            trash: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>',
+            x: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>'
         };
 
         // Googleカレンダーリンク生成（終日 or 時刻指定）
@@ -1332,12 +1337,12 @@
                 };
 
                 const request = await gapi.client.calendar.events.insert({
-                    'calendarId': 'primary',
+                    'calendarId': SHARED_CALENDAR_ID, // 共有カレンダーIDを使用
                     'resource': event
                 });
 
                 console.log('イベント作成成功:', request.result);
-                alert('✅ Googleカレンダーに追加しました！');
+                alert('✅ 共有カレンダーに追加しました！');
             } catch (err) {
                 console.error('イベント作成エラー:', err);
                 alert('❌ カレンダーへの追加に失敗しました。もう一度サインインしてください。');
@@ -1545,17 +1550,31 @@
 
         function toggleSubtask(taskId, subtaskId) {
             const task = state.tasks.find(t => t.id === taskId);
-            if (!task) return;
-
             const subtask = task.subtasks.find(st => st.id === subtaskId);
-            if (!subtask) return;
-
-            subtask.completed = !subtask.completed;
-            saveToLocalStorage();
-            render();
+            if (subtask) {
+                subtask.completed = !subtask.completed;
+                saveToLocalStorage();
+                render();
+            }
         }
 
-        function getSubtaskProgress(task) {
+        // 削除機能
+        function deleteTask(taskId) {
+            if (confirm('このタスクを削除してもよろしいですか？')) {
+                state.tasks = state.tasks.filter(t => t.id !== taskId);
+                saveToLocalStorage();
+                render();
+            }
+        }
+
+        function deleteSubtask(taskId, subtaskId) {
+            const task = state.tasks.find(t => t.id === taskId);
+            if (task && confirm('このサブタスクを削除してもよろしいですか？')) {
+                task.subtasks = task.subtasks.filter(st => st.id !== subtaskId);
+                saveToLocalStorage();
+                render();
+            }
+        } function getSubtaskProgress(task) {
             if (!task.subtasks || task.subtasks.length === 0) return 0;
             const completed = task.subtasks.filter(st => st.completed).length;
             return Math.round((completed / task.subtasks.length) * 100);
@@ -1828,33 +1847,9 @@
 
                     ${isExpanded && hasSubtasks ? `
                         <div class="subtasks-container">
-                            ${task.subtasks.map(subtask => {
-                const subtaskAssigneeClass = {
-                    '夫': 'assignee-husband',
-                    '妻': 'assignee-wife',
-                    '二人': 'assignee-both'
-                }[subtask.assignee || '二人'];
-
-                return `
-                                <div class="subtask-item ${subtask.completed ? 'completed' : ''}">
-                                    <div 
-                                        class="subtask-checkbox ${subtask.completed ? 'checked' : ''}" 
-                                        onclick="toggleSubtask(${task.id}, ${subtask.id})"
-                                    >
-                                        ${subtask.completed ? icons.check : ''}
-                                    </div>
-                                    <span class="subtask-title ${subtask.completed ? 'completed' : ''}">
-                                        ${subtask.title}
-                                    </span>
-                                    <span class="subtask-assignee ${subtaskAssigneeClass}">
-                                        ${subtask.assignee || '二人'}
-                                    </span>
-                                </div>
-                                `;
-            }).join('')}
+                            ${task.subtasks.map(subtask => renderSubtaskItem(task, subtask)).join('')}
                         </div>
                     ` : ''}
-
 
                     <div class="task-actions">
                         <button class="btn-add-subtask" onclick="addSubtask(${task.id})">
@@ -1867,7 +1862,35 @@
                                 Googleカレンダーに追加
                             </button>
                         ` : ''}
+                        
+                        <button class="btn btn-delete" style="margin-top: 8px; width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px;" onclick="deleteTask(${task.id})">
+                            ${icons.trash}
+                            タスクを削除
+                        </button>
                     </div>
+                </div>
+            `;
+        }
+
+        function renderSubtaskItem(task, subtask) {
+            const assigneeClass = {
+                '夫': 'assignee-husband',
+                '妻': 'assignee-wife',
+                '二人': 'assignee-both'
+            }[subtask.assignee];
+
+            return `
+                <div class="subtask-item">
+                    <div class="checkbox ${subtask.completed ? 'checked' : ''} small" onclick="toggleSubtask(${task.id}, ${subtask.id})">
+                        ${subtask.completed ? icons.check : ''}
+                    </div>
+                    <span class="subtask-title ${subtask.completed ? 'completed' : ''}">${subtask.title}</span>
+                    <span style="margin-left: auto; font-size: 10px;" class="task-assignee ${assigneeClass} small">
+                        ${subtask.assignee}
+                    </span>
+                    <button onclick="deleteSubtask(${task.id}, ${subtask.id})" style="background: none; border: none; color: #ef4444; cursor: pointer; padding: 4px;">
+                        ${icons.x}
+                    </button>
                 </div>
             `;
         }
@@ -1876,7 +1899,7 @@
         function renderCalendarTab() {
             const year = state.currentMonth.getFullYear();
             const month = state.currentMonth.getMonth();
-            const monthName = `${year}年${month + 1}月`;
+            const monthName = `${year}年${month + 1} 月`;
             const days = getDaysInMonth(state.currentMonth);
             const weekDays = ['日', '月', '火', '水', '木', '金', '土'];
 
@@ -1960,7 +1983,8 @@
                                 `;
             }).join('')}
                         </div>
-                    ` : ''}
+                    ` : ''
+                }
                 </div>
             `;
         }
@@ -1979,7 +2003,7 @@
             const completionRate = stats.total > 0 ? Math.round((stats.completed / stats.total) * 100) : 0;
 
             return `
-                <div class="container" style="padding-top: 24px;">
+            < div class="container" style = "padding-top: 24px;" >
                     <h2 class="section-title">⚙️ 統計情報</h2>
 
                     <div class="stats-card">
@@ -2093,29 +2117,29 @@
                         <p>💕</p>
                         <p>いつも二人で頑張っていますね！</p>
                     </div>
-                </div>
+                </div >
             `;
         }
 
         // ボトムナビゲーションのレンダリング
         function renderBottomNav() {
             return `
-                <div class="bottom-nav">
-                    <div class="nav-container">
-                        <button class="nav-button ${state.activeTab === 'tasks' ? 'active' : ''}" onclick="switchTab('tasks')">
-                            ${icons.list}
-                            <span>タスク</span>
-                        </button>
-                        <button class="nav-button ${state.activeTab === 'calendar' ? 'active' : ''}" onclick="switchTab('calendar')">
-                            ${icons.calendar}
-                            <span>カレンダー</span>
-                        </button>
-                        <button class="nav-button ${state.activeTab === 'settings' ? 'active' : ''}" onclick="switchTab('settings')">
-                            ${icons.settings}
-                            <span>設定</span>
-                        </button>
-                    </div>
+            < div class="bottom-nav" >
+                <div class="nav-container">
+                    <button class="nav-button ${state.activeTab === 'tasks' ? 'active' : ''}" onclick="switchTab('tasks')">
+                        ${icons.list}
+                        <span>タスク</span>
+                    </button>
+                    <button class="nav-button ${state.activeTab === 'calendar' ? 'active' : ''}" onclick="switchTab('calendar')">
+                        ${icons.calendar}
+                        <span>カレンダー</span>
+                    </button>
+                    <button class="nav-button ${state.activeTab === 'settings' ? 'active' : ''}" onclick="switchTab('settings')">
+                        ${icons.settings}
+                        <span>設定</span>
+                    </button>
                 </div>
+                </div >
             `;
         }
 
